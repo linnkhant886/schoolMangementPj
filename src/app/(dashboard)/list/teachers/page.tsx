@@ -7,6 +7,102 @@ import { Input } from "@/components/ui/input";
 import { useState } from "react";
 import TableforAllComponents from "../../components/Table";
 import PaginationforAllComponents from "../../components/Pagnation";
+import { teachersData } from "@/lib/data";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Eye, Edit } from "lucide-react";
+
+
+export interface Teacher {
+  id: number;
+  teacherId: string;
+  name: string;
+  email: string;
+  photo: string;
+  phone: string;
+  subjects: string[];
+  classes: string[];
+  address: string;
+}
+export interface ColumnConfig<T> {
+    header: string;
+    accessorKey?: keyof T; // Key to access data directly
+    render?: (item: T) => React.ReactNode; // Custom render function
+    className?: string; // Optional className for styling
+  }
+
+const teacherColumns: ColumnConfig<Teacher>[] = [
+    {
+      header: "Info",
+      render: (item) => (
+        <div className="flex items-center gap-3">
+          <Avatar>
+            <AvatarImage src={item.photo || "/placeholder.svg"} alt={item.name} />
+            <AvatarFallback>
+              {item.name
+                .split(" ")
+                .map((n) => n[0])
+                .join("")}
+            </AvatarFallback>
+          </Avatar>
+          <div>
+            <div className="font-medium">{item.name}</div>
+            <div className="text-sm text-muted-foreground">{item.email}</div>
+          </div>
+        </div>
+      ),
+    },
+    {
+      header: "Teacher ID",
+      accessorKey: "teacherId",
+    },
+    {
+      header: "Subjects",
+      render: (item) => (
+        <div className="flex flex-wrap gap-1">
+          {item.subjects.map((subject, index) => (
+            <Badge key={index} variant="secondary" className="text-xs">
+              {subject}
+            </Badge>
+          ))}
+        </div>
+      ),
+    },
+    {
+      header: "Classes",
+      render: (item) => item.classes.join(", "),
+    },
+    {
+      header: "Phone",
+      accessorKey: "phone",
+    },
+    {
+      header: "Address",
+      accessorKey: "address",
+      className: "max-w-[200px] truncate",
+    },
+    {
+      header: "Actions",
+      render: () => (
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 w-8 p-0 bg-blue-100 hover:bg-blue-200"
+          >
+            <Eye className="h-4 w-4 text-blue-600" />
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 w-8 p-0 bg-purple-100 hover:bg-purple-200"
+          >
+            <Edit className="h-4 w-4 text-purple-600" />
+          </Button>
+        </div>
+      ),
+    },
+  ];
 
 export default function Teachers() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -55,7 +151,7 @@ export default function Teachers() {
           </div>
         </CardHeader>
         <CardContent>
-          <TableforAllComponents />
+          <TableforAllComponents data={teachersData} columns={teacherColumns} />
           {/* Mobile Card View */}
 
           {/* Pagination */}
