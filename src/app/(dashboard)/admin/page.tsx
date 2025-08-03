@@ -3,7 +3,7 @@ import CountChart from "../components/CountChart";
 import FinanceChart from "../components/FinanceChart";
 import { StatsCards } from "../components/StatCard";
 import EventCalender from "../components/EventCalender";
-import Announcements from "../components/Announcements";
+import Announcements from "../components/AnnouncementsList";
 
 export default function adminPage() {
   return (

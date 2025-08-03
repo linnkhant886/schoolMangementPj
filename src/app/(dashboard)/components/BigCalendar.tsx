@@ -8,11 +8,11 @@ import "react-big-calendar/lib/css/react-big-calendar.css";
 const localizer = momentLocalizer(moment);
 
 const MyCalendar = () => {
-  const [view, setView] = useState<View>(Views.WEEK);
+  const [view, setView] = useState<View>(Views.WORK_WEEK);
 
   const handleOnChangeView = (selectedView: View) => {
     setView(selectedView);
-  };
+  };  
 
   return (
       <Calendar
@@ -22,13 +22,14 @@ const MyCalendar = () => {
         endAccessor="end"
         titleAccessor="title"
         // Only week and day views
-        views={["week", "day"]}
+        views={["work_week", "day"]}
         view={view}
         onView={handleOnChangeView}
         // Time range (8 AM to 6 PM)
         min={new Date(2025, 1, 0, 8, 0, 0)}
-        max={new Date(2025, 1, 0, 17, 0, 0)}
+        max={new Date(2025, 1, 0, 16, 0, 0)}
         style={{ height: "98%" }}
+        className="border"
       />
   );
 };

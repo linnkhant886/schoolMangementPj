@@ -1,6 +1,6 @@
 import EventCalender from "../components/EventCalender";
-import Announcements from "../components/Announcements";
 import BigCalendar from "../components/BigCalendar";
+import { AnnouncementsList } from "../components/AnnouncementsList";
 
 export default function Students() {
   return (
@@ -15,7 +15,7 @@ export default function Students() {
       {/* RIGHT */}
       <div className="w-full xl:w-1/3 flex flex-col gap-8">
         <EventCalender />
-        <Announcements />
+        <AnnouncementsList />
       </div>
     </div>
   );
