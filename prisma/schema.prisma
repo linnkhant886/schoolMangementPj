@@ -53,7 +53,7 @@ model Teacher {
   address   String
   img       String?
   createdAt DateTime  @default(now())
-  subjects  Subject[]
+  subjects  TeacherSubject[]
   lessons   Lesson[]
   classes   Class[]
   birthday  DateTime
@@ -95,8 +95,17 @@ model Class {
 model Subject {
   id       Int       @id @default(autoincrement())
   name     String    @unique
-  teachers Teacher[]
   lessons  Lesson[]
+  teachers TeacherSubject[]
+}
+
+
+model TeacherSubject {
+  teacherId  String
+  subjectId  Int
+  teacher    Teacher @relation(fields: [teacherId], references: [id])
+  subject    Subject @relation(fields: [subjectId], references: [id])
+  @@id([teacherId, subjectId])
 }
 
 model Lesson {
@@ -195,4 +204,3 @@ enum Day {
   THURSDAY
   FRIDAY
 }
-

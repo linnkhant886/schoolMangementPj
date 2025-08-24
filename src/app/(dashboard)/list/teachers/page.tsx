@@ -1,29 +1,31 @@
-"use client";
-
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
-import { Search, Filter, ArrowUpDown } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { useState } from "react";
+import { Filter, ArrowUpDown } from "lucide-react";
 import TableforAllComponents from "../../components/Table";
 import PaginationforAllComponents from "../../components/Pagnation";
-import { teachersData } from "@/lib/data";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Eye, Edit } from "lucide-react";
 import CreateTeacherForm from "../../components/Forms/TeacherForm";
+import TableSearch from "../../components/TableSearch";
+import prisma from "@/lib/prisma";
+import { ITEM_PER_PAGE } from "@/lib/settings";
 
-export interface Teacher {
-  id: number;
-  teacherId: string;
+interface Teacher {
+  id: string;
+  username: string;
   name: string;
+  surname: string;
   email: string;
-  photo: string;
   phone: string;
-  subjects: string[];
-  classes: string[];
   address: string;
+  img: string | null;
+  createdAt: Date;
+  birthday: Date;
+  subjects: { subject: { name: string } }[]; // updated to match usage
+  classes: { name: string }[]; // updated to match usage
 }
+
 export interface ColumnConfig<T> {
   header: string;
   accessorKey?: keyof T; // Key to access data directly
@@ -37,7 +39,7 @@ const teacherColumns: ColumnConfig<Teacher>[] = [
     render: (item) => (
       <div className="flex items-center gap-3">
         <Avatar>
-          <AvatarImage src={item.photo || "/placeholder.svg"} alt={item.name} />
+          <AvatarImage src={item.img || "/placeholder.svg"} alt={item.name} />
           <AvatarFallback>
             {item.name
               .split(" ")
@@ -54,15 +56,15 @@ const teacherColumns: ColumnConfig<Teacher>[] = [
   },
   {
     header: "Teacher ID",
-    accessorKey: "teacherId",
+    accessorKey: "id",
   },
   {
     header: "Subjects",
     render: (item) => (
       <div className="flex flex-wrap gap-1">
-        {item.subjects.map((subject, index) => (
+        {item.subjects.map((subjectRelation, index) => (
           <Badge key={index} variant="secondary" className="text-xs">
-            {subject}
+            {subjectRelation.subject.name}
           </Badge>
         ))}
       </div>
@@ -70,7 +72,15 @@ const teacherColumns: ColumnConfig<Teacher>[] = [
   },
   {
     header: "Classes",
-    render: (item) => item.classes.join(", "),
+    render: (item) => (
+      <div className="flex flex-wrap gap-1">
+        {item.classes.map((classItem, index) => (
+          <Badge key={index} variant="outline" className="text-xs">
+            {classItem.name}
+          </Badge>
+        ))}
+      </div>
+    ),
   },
   {
     header: "Phone",
@@ -103,9 +113,32 @@ const teacherColumns: ColumnConfig<Teacher>[] = [
     ),
   },
 ];
+export default async function Teachers({
+  searchParams,
+}: {
+  searchParams: { [key: string]: string } | undefined;
+}) {
+  const params = await searchParams;
+  const page = params?.page;
+  const p = page ? Number(page) : 1;
 
-export default function Teachers() {
-  const [searchTerm, setSearchTerm] = useState("");
+  const [data, count] = await prisma.$transaction([
+    prisma.teacher.findMany({
+      include: {
+        subjects: {
+          include: {
+            subject: true,
+          },
+        },
+        classes: true,
+      },
+      take: ITEM_PER_PAGE,
+      skip: (p - 1) * ITEM_PER_PAGE,
+    }),
+    prisma.teacher.count(),
+  ]);
+
+  // console.log("teachers:", count);
 
   return (
     <div className="flex-1 space-y-4 p-4 md:p-2 pt-6">
@@ -114,15 +147,7 @@ export default function Teachers() {
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <h2 className="text-xl font-bold tracking-tight">All Teachers</h2>
             <div className="flex items-center gap-2">
-              <div className="relative flex-1 max-w-sm">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                <Input
-                  placeholder="Search from table..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
+              <TableSearch />
               <Button
                 variant="outline"
                 size="sm"
@@ -142,11 +167,11 @@ export default function Teachers() {
           </div>
         </CardHeader>
         <CardContent>
-          <TableforAllComponents data={teachersData} columns={teacherColumns} />
+          <TableforAllComponents data={data} columns={teacherColumns} />
           {/* Mobile Card View */}
 
           {/* Pagination */}
-          <PaginationforAllComponents />
+          <PaginationforAllComponents count={count} page={p} />
         </CardContent>
       </Card>
     </div>

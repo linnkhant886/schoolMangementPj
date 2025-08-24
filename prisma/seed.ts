@@ -100,6 +100,25 @@ async function main() {
     subjectData.map((subject) => prisma.subject.create({ data: subject }))
   );
 
+  await Promise.all(
+    teachers.map((teacher) => {
+      const randomSubjects = faker.helpers.arrayElements(
+        subjects,
+        faker.number.int({ min: 1, max: 3 })
+      );
+      return Promise.all(
+        randomSubjects.map((subject) =>
+          prisma.teacherSubject.create({
+            data: {
+              teacherId: teacher.id,
+              subjectId: subject.id,
+            },
+          })
+        )
+      );
+    })
+  );
+
   const lessons = await Promise.all(
     Array.from({ length: 10 }).map((_, i) =>
       prisma.lesson.create({
