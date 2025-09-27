@@ -10,6 +10,7 @@ import { ColumnConfig } from "../teachers/page";
 import TableforAllComponents from "../../components/Table";
 import { lessonsData } from "@/lib/data";
 import { Eye, Edit } from "lucide-react";
+import TableSearch from "../../components/TableSearch";
 
 interface Lessons {
   id: number;
@@ -67,13 +68,7 @@ export default function Students() {
             <h2 className="text-xl font-bold tracking-tight">All Classes</h2>
             <div className="flex items-center gap-2">
               <div className="relative flex-1 max-w-sm">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                <Input
-                  placeholder="Search from table..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
+                <TableSearch/>
               </div>
               <Button
                 variant="outline"

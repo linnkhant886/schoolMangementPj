@@ -5,11 +5,12 @@ import TableforAllComponents from "../../components/Table";
 import PaginationforAllComponents from "../../components/Pagnation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Eye, Edit } from "lucide-react";
+import { Trash, Edit } from "lucide-react";
 import CreateTeacherForm from "../../components/Forms/TeacherForm";
 import TableSearch from "../../components/TableSearch";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
+import Link from "next/link";
 
 interface Teacher {
   id: string;
@@ -93,21 +94,23 @@ const teacherColumns: ColumnConfig<Teacher>[] = [
   },
   {
     header: "Actions",
-    render: () => (
+    render: (item) => (
       <div className="flex items-center gap-2">
-        <Button
-          variant="outline"
-          size="sm"
-          className="h-8 w-8 p-0 bg-blue-100 hover:bg-blue-200"
-        >
-          <Eye className="h-4 w-4 text-blue-600" />
-        </Button>
+        <Link href={`/list/teachers/${item.id}`}>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 w-8 p-0 bg-blue-100 hover:bg-blue-200"
+          >
+            <Edit className="h-4 w-4 text-blue-600" />
+          </Button>
+        </Link>
         <Button
           variant="outline"
           size="sm"
           className="h-8 w-8 p-0 bg-purple-100 hover:bg-purple-200"
         >
-          <Edit className="h-4 w-4 text-purple-600" />
+          <Trash className="h-4 w-4 text-purple-600" />
         </Button>
       </div>
     ),
@@ -120,10 +123,23 @@ export default async function Teachers({
 }) {
   const params = await searchParams;
   const page = params?.page;
+  const query = params?.teacherid || "";
   const p = page ? Number(page) : 1;
+
+  const whereClause = query
+    ? {
+        OR: [
+          { name: { contains: query, mode: "insensitive" as const } },
+          { surname: { contains: query, mode: "insensitive" as const } },
+          { email: { contains: query, mode: "insensitive" as const } },
+          { phone: { contains: query, mode: "insensitive" as const } },
+        ],
+      }
+    : {};
 
   const [data, count] = await prisma.$transaction([
     prisma.teacher.findMany({
+      where: whereClause,
       include: {
         subjects: {
           include: {
@@ -135,9 +151,8 @@ export default async function Teachers({
       take: ITEM_PER_PAGE,
       skip: (p - 1) * ITEM_PER_PAGE,
     }),
-    prisma.teacher.count(),
+    prisma.teacher.count({ where: whereClause }),
   ]);
-
   // console.log("teachers:", count);
 
   return (
@@ -147,7 +162,7 @@ export default async function Teachers({
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <h2 className="text-xl font-bold tracking-tight">All Teachers</h2>
             <div className="flex items-center gap-2">
-              <TableSearch />
+              <TableSearch searchType="teacherid"/>
               <Button
                 variant="outline"
                 size="sm"

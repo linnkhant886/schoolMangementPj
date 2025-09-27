@@ -1,22 +1,20 @@
-"use client";
-
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
-import { Search, Filter, ArrowUpDown, Plus } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { useState } from "react";
+import { Filter, ArrowUpDown, Plus } from "lucide-react";
 import PaginationforAllComponents from "../../components/Pagnation";
 import { ColumnConfig } from "../teachers/page";
 import TableforAllComponents from "../../components/Table";
-import { classesData } from "@/lib/data";
+// import { classesData } from "@/lib/data";
 import { Eye, Edit } from "lucide-react";
+import TableSearch from "../../components/TableSearch";
+import prisma from "@/lib/prisma";
 
 interface Classes {
   id: number;
   name: string;
   capacity: number;
-  grade: number;
-  supervisor: string;
+  gradeId: number;
+  supervisor: { name: string } | null;
 }
 
 const classColumns: ColumnConfig<Classes>[] = [
@@ -28,16 +26,17 @@ const classColumns: ColumnConfig<Classes>[] = [
     header: "Capacity",
     accessorKey: "capacity",
   },
-  
+
   {
     header: "Grade",
-    accessorKey: "grade",
+    accessorKey: "gradeId",
   },
   {
-    header: "Supervisor",   
-    accessorKey: "supervisor",
+    header: "Supervisor",
+    render: (item) =>
+      item.supervisor ? item.supervisor.name : "No Supervisor",
   },
-  
+
   {
     header: "Actions",
     render: () => (
@@ -61,8 +60,39 @@ const classColumns: ColumnConfig<Classes>[] = [
   },
 ];
 
-export default function Students() {
-  const [searchTerm, setSearchTerm] = useState("");
+export default async function Classes({
+  searchParams,
+}: {
+  searchParams: { [key: string]: string } | undefined;
+}) {
+  const params = await searchParams;
+  const page = params?.page;
+  const query = params?.classid || "";
+  const p = page ? Number(page) : 1;
+ const whereClause = query
+  ? {
+      OR: [
+        { name: { contains: query, mode: "insensitive" as const } },
+        { supervisor: { name: { contains: query, mode: "insensitive" as const } } },
+      ],
+    }
+  : {};
+
+  const [data, count] = await prisma.$transaction([
+    prisma.class.findMany({
+      where: whereClause,
+      include: {
+        supervisor: {
+          select: {
+            name: true,
+          },
+        },
+      },
+    }),
+    prisma.class.count({ where: whereClause }),
+  ]);
+
+  // console.log(classData);
   return (
     <div className="flex-1 space-y-4 p-4 md:p-2 pt-6">
       <Card>
@@ -70,15 +100,7 @@ export default function Students() {
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <h2 className="text-xl font-bold tracking-tight">All Classes</h2>
             <div className="flex items-center gap-2">
-              <div className="relative flex-1 max-w-sm">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                <Input
-                  placeholder="Search from table..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
+              <TableSearch searchType="classid" />
               <Button
                 variant="outline"
                 size="sm"
@@ -103,14 +125,11 @@ export default function Students() {
           </div>
         </CardHeader>
         <CardContent>
-          <TableforAllComponents
-            data={classesData}
-            columns={classColumns}
-          />
+          <TableforAllComponents data={data} columns={classColumns} />
           {/* Mobile Card View */}
 
           {/* Pagination */}
-          <PaginationforAllComponents />
+          <PaginationforAllComponents count={count} page={p} />
         </CardContent>
       </Card>
     </div>

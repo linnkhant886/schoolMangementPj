@@ -1,49 +1,53 @@
-"use client";
-
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
-import { Search, Filter, ArrowUpDown, Plus } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { useState } from "react";
+import { Filter, ArrowUpDown, Plus } from "lucide-react";
 import PaginationforAllComponents from "../../components/Pagnation";
 import { ColumnConfig } from "../teachers/page";
 import TableforAllComponents from "../../components/Table";
-import { studentsData } from "@/lib/data";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Eye, Edit } from "lucide-react";
+import TableSearch from "../../components/TableSearch";
+import prisma from "@/lib/prisma";
+import { ITEM_PER_PAGE } from "@/lib/settings";
 
+
+// id grade class email phone adress
 
 // {
-//   id: 1,
-//   studentId: "1234567890",
-//   name: "John Doe",
-//   email: "john@doe.com",
-//   photo:
-//     "https://images.pexels.com/photos/2888150/pexels-photo-2888150.jpeg?auto=compress&cs=tinysrgb&w=1200",
-//   phone: "1234567890",
-//   grade: 5,
-//   class: "1B",
-//   address: "123 Main St, Anytown, USA",
-// }
+//     id: 'S7',
+//     username: 'Kurtis47',
+//     name: 'Bridgette',
+//     surname: 'Grady',
+//     email: 'Fanny94@hotmail.com',
+//     phone: '721-549-6931',
+//     address: '5552 Dan Landing',
+//     img: null,
+//     bloodType: 'A',
+//     sex: 'FEMALE',
+//     createdAt: 2025-08-10T09:37:45.465Z,
+//     parentId: 'P7',
+//     classId: 4,
+//     gradeId: 6,
+//     birthday: 2013-04-18T03:22:39.279Z
+//   },
 interface Students {
-  id: number;
-  studentId: string;
+  id: string;
   name: string;
-  email: string;
-  photo: string;
-  phone: string;
-  grade: number;
-  class: string;
+  email: string | null;
+  img: string | null;
+  phone: string | null;
+  grade: { level: number };
+  class: { name: string };
   address: string;
 }
 
-const studentsColumns: ColumnConfig<Students>[] =[
+const studentsColumns: ColumnConfig<Students>[] = [
   {
     header: "Info",
     render: (item) => (
       <div className="flex items-center gap-3">
         <Avatar>
-          <AvatarImage src={item.photo || "/placeholder.svg"} alt={item.name} />
+          <AvatarImage src={item.img || "/placeholder.svg"} alt={item.name} />
           <AvatarFallback>
             {item.name
               .split(" ")
@@ -60,15 +64,15 @@ const studentsColumns: ColumnConfig<Students>[] =[
   },
   {
     header: "Student ID",
-    accessorKey: "studentId",
+    accessorKey: "id",
   },
   {
     header: "Grade",
-    accessorKey: "grade",
+    render: (item) => item.grade.level,
   },
   {
     header: "Classes",
-    accessorKey: "class",
+    render: (item) => item.class.name,
   },
   {
     header: "Phone",
@@ -102,30 +106,65 @@ const studentsColumns: ColumnConfig<Students>[] =[
   },
 ];
 
+export default async function Students({
+  searchParams,
+}: {
+  searchParams: { [key: string]: string } | undefined;
+}) {
+  const params = await searchParams;
+  const page = params?.page;
+  const query = params?.studentid || "";
+  const p = page ? Number(page) : 1;
+  const whereClause = query
+    ? {
+        OR: [
+          { name: { contains: query, mode: "insensitive" as const } },
+          {
+            supervisor: {
+              name: { contains: query, mode: "insensitive" as const },
+            },
+          },
+        ],
+      }
+    : {};
 
-export default function Students() {
-  const [searchTerm, setSearchTerm] = useState("");
+  const [data, count] = await prisma.$transaction([
+    prisma.student.findMany({
+      where: whereClause,
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phone: true,
+        img: true,
+        grade: {
+          select: {
+            level: true,
+          },
+        },
+        class: {
+          select: {
+            name: true,
+          },
+        },
+        address: true,
+      },
+      take: ITEM_PER_PAGE,
+      skip: (p - 1) * ITEM_PER_PAGE,
+      
+    }),
+    prisma.student.count({ where: whereClause }),
+  ]);
+  // console.log(data);
+  // console.log("count", count);
   return (
     <div className="flex-1 space-y-4 p-4 md:p-2 pt-6">
-      
-
       <Card>
         <CardHeader>
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-
-            <h2 className="text-xl font-bold tracking-tight">
-                All Students
-              </h2>
+            <h2 className="text-xl font-bold tracking-tight">All Students</h2>
             <div className="flex items-center gap-2">
-              <div className="relative flex-1 max-w-sm">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                <Input
-                  placeholder="Search from table..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
+              <TableSearch searchType="studentid" />
               <Button
                 variant="outline"
                 size="sm"
@@ -150,11 +189,14 @@ export default function Students() {
           </div>
         </CardHeader>
         <CardContent>
-          <TableforAllComponents data={studentsData} columns={studentsColumns} />
+          <TableforAllComponents
+            data={data}
+            columns={studentsColumns}
+          />
           {/* Mobile Card View */}
 
           {/* Pagination */}
-          <PaginationforAllComponents />
+          <PaginationforAllComponents count={count} page={p}/>
         </CardContent>
       </Card>
     </div>
