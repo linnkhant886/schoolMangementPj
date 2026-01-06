@@ -2,7 +2,6 @@
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Bell, MessageCircle } from "lucide-react";
-import { UserButton } from "@clerk/nextjs";
 
 export default function Navbar() {
   return (
@@ -31,12 +30,10 @@ export default function Navbar() {
             Student
           </div>
         </div>
-        <p>hh</p>
-        <UserButton />
-        {/* <Avatar className="h-8 w-8">
+        <Avatar className="h-8 w-8">
           <AvatarImage src="/placeholder-user.jpg" alt="John Doe" />
           <AvatarFallback>JD</AvatarFallback>
-        </Avatar> */}
+        </Avatar>
       </div>
     </header>
   );
