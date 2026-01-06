@@ -31,33 +31,33 @@ import { notFound } from "next/navigation";
 // }
 // }
 
-export default async function SingleTeacher({ params }: { params: { id: string } }) {
+export default async function SingleStudent({ params }: { params: { id: string } }) {
 
-  const teacher = await prisma.teacher.findUnique({
+  const student = await prisma.student.findUnique({
     where: {
       id: params.id,
     },
   })
 
-  if (!teacher) {
+  if (!student) {
     notFound(); // Triggers Next.js 404
   }
 
 
   // Map DB teacher to component-expected shape
   const teacherData = {
-    id: teacher.id,
-    teacherId: teacher.id, // Reuse ID or generate if separate field exists
-    name: `${teacher.name} ${teacher.surname}`, // Combine name + surname
-    email: teacher.email,
-    photo: teacher.img || "/placeholder.svg", // Fallback to placeholder
-    phone: teacher.phone,
+    id: student.id,
+    teacherId: student.id, // Reuse ID or generate if separate field exists
+    name: `${student.name} ${student.surname}`, // Combine name + surname
+    email: student.email,
+    photo: student.img || "/placeholder.svg", // Fallback to placeholder
+    phone: student.phone,
     grade: "A+", // Compute based on performance if available, or default
-    joinDate: teacher.createdAt.toLocaleDateString("en-US", { month: "long", year: "numeric" }), // Format createdAt
+    joinDate: student.createdAt.toLocaleDateString("en-US", { month: "long", year: "numeric" }), // Format createdAt
     description: "Experienced educator with a passion for teaching.", // Default; add to DB schema if needed
     // subjects: teacher.subjects.map((s) => s.subject.name),
     // classes: teacher.classes.map((c) => c.name),
-    address: teacher.address,
+    address: student.address,
     stats: {
     attendance: 90,
     branches: 2,
@@ -81,7 +81,7 @@ export default async function SingleTeacher({ params }: { params: { id: string }
           {/* Row 1: Profile + Stats */}
           <div className="flex flex-col md:flex-row gap-4 md:gap-6">
             <div className="w-full md:w-3/5">
-              <TeacherProfileCard teacher={teacherData} />
+              {/* <TeacherProfileCard teacher={teacherData} /> */}
             </div>
             <div className="w-full md:w-2/5">
               <TeacherStats stats={teacherData.stats} />
@@ -100,7 +100,7 @@ export default async function SingleTeacher({ params }: { params: { id: string }
         {/* Right Side: Shortcuts, Performance, Announcements */}
         <div className="w-full lg:w-1/3 flex flex-col gap-4">
           <div className="flex flex-col gap-4">
-            <TeacherShortcuts teacherID={teacher.id} />
+            {/* <TeacherShortcuts teacherName={student.name} /> */}
             <Performance />
             <AnnouncementsList />
           </div>

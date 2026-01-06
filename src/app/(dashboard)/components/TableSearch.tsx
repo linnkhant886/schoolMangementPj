@@ -8,7 +8,7 @@ import { useDebouncedCallback } from "use-debounce";
 
 interface TableSearchProps {
   onSearch?: (query: string) => void;
-  searchType: string; 
+  searchType?: string; 
 }
 
 export default function TableSearch({ onSearch, searchType }: TableSearchProps) {

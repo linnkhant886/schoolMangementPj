@@ -4,7 +4,6 @@ import { Filter, ArrowUpDown, Plus } from "lucide-react";
 import PaginationforAllComponents from "../../components/Pagnation";
 import { ColumnConfig } from "../teachers/page";
 import TableforAllComponents from "../../components/Table";
-// import { classesData } from "@/lib/data";
 import { Eye, Edit } from "lucide-react";
 import TableSearch from "../../components/TableSearch";
 import prisma from "@/lib/prisma";
@@ -69,14 +68,19 @@ export default async function Classes({
   const page = params?.page;
   const query = params?.classid || "";
   const p = page ? Number(page) : 1;
- const whereClause = query
-  ? {
-      OR: [
-        { name: { contains: query, mode: "insensitive" as const } },
-        { supervisor: { name: { contains: query, mode: "insensitive" as const } } },
-      ],
-    }
-  : {};
+  const whereClause = query
+    ? {
+        OR: [
+          { name: { contains: query, mode: "insensitive" as const } },
+          { supervisorId: { equals: query, mode: "insensitive" as const } },
+          {
+            supervisor: {
+              name: { contains: query, mode: "insensitive" as const },
+            },
+          },
+        ],
+      }
+    : {};
 
   const [data, count] = await prisma.$transaction([
     prisma.class.findMany({
@@ -92,7 +96,7 @@ export default async function Classes({
     prisma.class.count({ where: whereClause }),
   ]);
 
-  // console.log(classData);
+  // console.log(data);
   return (
     <div className="flex-1 space-y-4 p-4 md:p-2 pt-6">
       <Card>

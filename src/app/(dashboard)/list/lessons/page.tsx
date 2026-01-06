@@ -1,40 +1,36 @@
-"use client";
-
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
-import { Search, Filter, ArrowUpDown, Plus } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { useState } from "react";
+import { Filter, ArrowUpDown, Plus } from "lucide-react";
 import PaginationforAllComponents from "../../components/Pagnation";
 import { ColumnConfig } from "../teachers/page";
 import TableforAllComponents from "../../components/Table";
-import { lessonsData } from "@/lib/data";
 import { Eye, Edit } from "lucide-react";
 import TableSearch from "../../components/TableSearch";
+import prisma from "@/lib/prisma";
+import { ITEM_PER_PAGE } from "@/lib/settings";
 
 interface Lessons {
   id: number;
-  subject: string;
-  class: string;
-  teacher: string;
+  subject: { name: string };
+  class: { name: string };
+  teacher: { name: string };
 }
 
 const lessonColumns: ColumnConfig<Lessons>[] = [
   {
     header: "Subject Name",
-    accessorKey: "subject",
+    render: (item) => item.subject.name,
   },
   {
     header: "Class",
-    accessorKey: "class",
+    render: (item) => item.class.name,
   },
-  
+
   {
     header: "Teacher",
-    accessorKey: "teacher",
+    render: (item) => item.teacher.name,
   },
-  
-  
+
   {
     header: "Actions",
     render: () => (
@@ -58,8 +54,74 @@ const lessonColumns: ColumnConfig<Lessons>[] = [
   },
 ];
 
-export default function Students() {
-  const [searchTerm, setSearchTerm] = useState("");
+export default async function Lessons({
+  searchParams,
+}: {
+  searchParams: { [key: string]: string | string[] | undefined };
+}) {
+  const params = await searchParams;
+  const page = params?.page;
+  const query = Array.isArray(params?.lessonid)
+    ? params.lessonid[0]
+    : params?.lessonid || "";
+  const p = page ? Number(page) : 1;
+
+  const whereClause = query
+    ? {
+        OR: [
+          {
+            subject: {
+              name: { contains: query, mode: "insensitive" as const },
+            },
+          },
+          {
+            teacher: {
+              name: { contains: query, mode: "insensitive" as const },
+            },
+          },
+          {
+            teacher: {
+              id: { equals: query, mode: "insensitive" as const },
+            },
+          },
+        ],
+      }
+    : {};
+
+  const [data, count] = await prisma.$transaction([
+    prisma.lesson.findMany({
+      where: whereClause,
+      include: {
+        subject: {
+          select: {
+            name: true,
+          },
+        },
+        class: {
+          select: {
+            name: true,
+          },
+        },
+        teacher: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+      take: ITEM_PER_PAGE,
+      skip: ITEM_PER_PAGE * (p - 1),
+    }),
+    prisma.class.count(),
+  ]);
+
+  // const data = rawLessons.map((item: Lessons) => ({
+  //   id: item.id,
+  //   subject: item.subject.name,
+  //   class: item.class.name,
+  //   teacher: item.teacher.name,
+  // }));
+  // console.log(data);
   return (
     <div className="flex-1 space-y-4 p-4 md:p-2 pt-6">
       <Card>
@@ -68,7 +130,7 @@ export default function Students() {
             <h2 className="text-xl font-bold tracking-tight">All Classes</h2>
             <div className="flex items-center gap-2">
               <div className="relative flex-1 max-w-sm">
-                <TableSearch/>
+                <TableSearch searchType="lessonid" />
               </div>
               <Button
                 variant="outline"
@@ -94,14 +156,11 @@ export default function Students() {
           </div>
         </CardHeader>
         <CardContent>
-          <TableforAllComponents
-            data={lessonsData}
-            columns={lessonColumns}
-          />
+          <TableforAllComponents data={data} columns={lessonColumns} />
           {/* Mobile Card View */}
 
           {/* Pagination */}
-          <PaginationforAllComponents />
+          <PaginationforAllComponents count={count} page={p} />
         </CardContent>
       </Card>
     </div>

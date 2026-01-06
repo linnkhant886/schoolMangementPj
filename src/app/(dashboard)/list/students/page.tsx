@@ -1,14 +1,15 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
-import { Filter, ArrowUpDown, Plus } from "lucide-react";
+import { Filter, ArrowUpDown, Plus, Trash } from "lucide-react";
 import PaginationforAllComponents from "../../components/Pagnation";
 import { ColumnConfig } from "../teachers/page";
 import TableforAllComponents from "../../components/Table";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Eye, Edit } from "lucide-react";
+import { Edit } from "lucide-react";
 import TableSearch from "../../components/TableSearch";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
+import Link from "next/link";
 
 
 // id grade class email phone adress
@@ -87,24 +88,28 @@ const studentsColumns: ColumnConfig<Students>[] = [
     header: "Actions",
     render: () => (
       <div className="flex items-center gap-2">
+        <Link href={`/list/students`}>  
         <Button
           variant="outline"
           size="sm"
           className="h-8 w-8 p-0 bg-blue-100 hover:bg-blue-200"
         >
-          <Eye className="h-4 w-4 text-blue-600" />
+          <Edit className="h-4 w-4 text-blue-600" />
         </Button>
+        </Link>
         <Button
           variant="outline"
           size="sm"
           className="h-8 w-8 p-0 bg-purple-100 hover:bg-purple-200"
         >
-          <Edit className="h-4 w-4 text-purple-600" />
+          <Trash className="h-4 w-4 text-purple-600" />
         </Button>
       </div>
     ),
   },
 ];
+
+
 
 export default async function Students({
   searchParams,
@@ -113,20 +118,30 @@ export default async function Students({
 }) {
   const params = await searchParams;
   const page = params?.page;
-  const query = params?.studentid || "";
+  const studentQuery = params?.studentid || "";
+  const teacherQuery = params?.teacherid || "";
   const p = page ? Number(page) : 1;
-  const whereClause = query
+
+  const whereClause =
+  studentQuery
     ? {
         OR: [
-          { name: { contains: query, mode: "insensitive" as const } },
-          {
-            supervisor: {
-              name: { contains: query, mode: "insensitive" as const },
-            },
-          },
+          { name: { contains: studentQuery, mode: "insensitive" as const } },
+          { id: { contains: studentQuery, mode: "insensitive" as const } },
         ],
       }
+    : teacherQuery
+    ? {
+        class: {
+          is: {
+            supervisor: {
+              id: teacherQuery,
+            },
+          },
+        },
+      }
     : {};
+
 
   const [data, count] = await prisma.$transaction([
     prisma.student.findMany({

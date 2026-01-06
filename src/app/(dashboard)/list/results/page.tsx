@@ -1,53 +1,52 @@
-"use client";
-
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
-import { Search, Filter, ArrowUpDown, Plus } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { useState } from "react";
+import { Filter, ArrowUpDown, Plus } from "lucide-react";
 import PaginationforAllComponents from "../../components/Pagnation";
 import { ColumnConfig } from "../teachers/page";
 import TableforAllComponents from "../../components/Table";
-import { resultsData } from "@/lib/data";
+// import { resultsData } from "@/lib/data";
 import { Eye, Edit } from "lucide-react";
+import TableSearch from "../../components/TableSearch";
+import prisma from "@/lib/prisma";
+import { ITEM_PER_PAGE } from "@/lib/settings";
 
 interface Results {
   id: number;
-  subject: string;
+  title: string;
   class: string;
   student: string;
   teacher: string;
   score: number;
-  date: string;
+  date: Date;
 }
 
 const resultsColumns: ColumnConfig<Results>[] = [
   {
-    header: "Subject ",
-    accessorKey: "subject",
+    header: "Title ",
+    accessorKey: "title",
   },
   {
     header: "Student",
     accessorKey: "student",
   },
-  
+
   {
     header: "Score",
     accessorKey: "score",
   },
   {
-    header: "Teacher",   
+    header: "Teacher",
     accessorKey: "teacher",
   },
   {
-    header: "Class",   
+    header: "Class",
     accessorKey: "class",
   },
   {
-    header: "Date",   
-    accessorKey: "date",
+    header: "Date",
+    render: (item) => item.date.toLocaleDateString(),
   },
-  
+
   {
     header: "Actions",
     render: () => (
@@ -71,24 +70,117 @@ const resultsColumns: ColumnConfig<Results>[] = [
   },
 ];
 
-export default function Students() {
-  const [searchTerm, setSearchTerm] = useState("");
+export default async function Results({
+  searchParams,
+}: {
+  searchParams: { [key: string]: string } | undefined;
+}) {
+  const params = await searchParams;
+  const page = params?.page;
+  const query = params?.resultid || "";
+  const p = page ? Number(page) : 1;
+
+  const whereClause = query
+    ? {
+        OR: [
+          {
+            student: {
+              name: { contains: query, mode: "insensitive" as const },
+            },
+          },
+          {
+            assignment: {
+              title: { contains: query, mode: "insensitive" as const },
+            },
+          },
+          {
+            exam: { title: { contains: query, mode: "insensitive" as const } },
+          },
+          {
+            assignment: {
+              lesson: {
+                teacher: {
+                  name: { contains: query, mode: "insensitive" as const },
+                },
+              },
+            },
+          },
+          {
+            exam: {
+              lesson: {
+                teacher: {
+                  name: { contains: query, mode: "insensitive" as const },
+                },
+              },
+            },
+          },
+        ],
+      }
+    : {};
+
+  const [rawResults, count] = await prisma.$transaction([
+    prisma.result.findMany({
+      where: whereClause,
+      include: {
+        student: { select: { name: true } },
+        assignment: {
+          include: {
+            lesson: {
+              select: {
+                class: { select: { name: true } },
+                teacher: { select: { name: true } },
+              },
+            },
+          },
+        },
+        exam: {
+          include: {
+            lesson: {
+              select: {
+                class: { select: { name: true } },
+                teacher: { select: { name: true } },
+              },
+            },
+          },
+        },
+      },
+      take: ITEM_PER_PAGE,
+      skip: ITEM_PER_PAGE * (p - 1),
+      
+    }),
+    prisma.result.count({ where: whereClause }),
+  ]);
+
+  const data = rawResults
+    .map((item) => {
+      const assessment = item.exam || item.assignment;
+
+      if (!assessment) return null;
+
+      const isExam = "startTime" in assessment;
+
+      return {
+        id: item.id,
+        title: assessment.title,
+        student: item.student.name,
+        teacher: assessment.lesson.teacher.name,
+        score: item.score,
+        class: assessment.lesson.class.name,
+        date: isExam ? assessment.startTime : assessment.startDate,
+      } as Results;
+    })
+    .filter((x): x is Results => x !== null);
+
+  // console.log(data);
+
   return (
     <div className="flex-1 space-y-4 p-4 md:p-2 pt-6">
       <Card>
         <CardHeader>
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <h2 className="text-xl font-bold tracking-tight">All Classes</h2>
+            <h2 className="text-xl font-bold tracking-tight">Results</h2>
             <div className="flex items-center gap-2">
-              <div className="relative flex-1 max-w-sm">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                <Input
-                  placeholder="Search from table..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
+              <TableSearch searchType="resultid" />
               <Button
                 variant="outline"
                 size="sm"
@@ -113,14 +205,11 @@ export default function Students() {
           </div>
         </CardHeader>
         <CardContent>
-          <TableforAllComponents
-            data={resultsData}
-            columns={resultsColumns}
-          />
+          <TableforAllComponents data={data} columns={resultsColumns} />
           {/* Mobile Card View */}
 
           {/* Pagination */}
-          <PaginationforAllComponents />
+          <PaginationforAllComponents count={count} page={p} />
         </CardContent>
       </Card>
     </div>

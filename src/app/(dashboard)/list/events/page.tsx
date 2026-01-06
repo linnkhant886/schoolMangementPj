@@ -1,25 +1,22 @@
-"use client";
-
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
-import { Search, Filter, ArrowUpDown, Plus } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { useState } from "react";
+import { Filter, ArrowUpDown, Plus } from "lucide-react";
 import PaginationforAllComponents from "../../components/Pagnation";
 import { ColumnConfig } from "../teachers/page";
 import TableforAllComponents from "../../components/Table";
-import { eventsData } from "@/lib/data";
 import { Eye, Edit } from "lucide-react";
+import TableSearch from "../../components/TableSearch";
+import { ITEM_PER_PAGE } from "@/lib/settings";
+import prisma from "@/lib/prisma";
 
 interface Events {
-    id: number;
-    title: string;
-    class: string;
-    date: string;
-    startTime: string;
-    endTime: string;
+  id: number;
+  title: string;
+  class: string;
+  date: Date;
+  startTime: Date;
+  endTime: Date;
 }
- 
 
 const eventsColumns: ColumnConfig<Events>[] = [
   {
@@ -29,21 +26,35 @@ const eventsColumns: ColumnConfig<Events>[] = [
   {
     header: "Class",
     accessorKey: "class",
-    
   },
-  
+
   {
     header: "Date",
-    accessorKey: "date",
+    render: (item) =>
+      new Date(item.date).toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      }),
   },
   {
     header: "Start Time",
-    accessorKey: "startTime",
+    render: (item) =>
+      new Date(item.startTime).toLocaleTimeString("en-US", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true, // set to true for AM/PM format
+      }),
   },
 
   {
     header: "End Time",
-    accessorKey: "endTime",
+    render: (item) =>
+      new Date(item.endTime).toLocaleTimeString("en-US", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+      }),
   },
   {
     header: "Actions",
@@ -68,8 +79,42 @@ const eventsColumns: ColumnConfig<Events>[] = [
   },
 ];
 
-export default function Students() {
-  const [searchTerm, setSearchTerm] = useState("");
+export default async function Events({
+  searchParams,
+}: {
+  searchParams: { [key: string]: string } | undefined;
+}) {
+  const params = await searchParams;
+  const page = params?.page;
+  const query = params?.eventid || "";
+  const p = page ? Number(page) : 1;
+
+  const [rawevent, count] = await prisma.$transaction([
+    prisma.event.findMany({
+      // where: whereClause,
+      include: {
+        class: {
+          select: {
+            name: true,
+          },
+        },
+      },
+      take: ITEM_PER_PAGE,
+      skip: ITEM_PER_PAGE * (p - 1),
+    }),
+    prisma.result.count(),
+  ]);
+
+  const data = rawevent.map((event) => ({
+    id: event.id,
+    title: event.title,
+    class: event.class?.name ?? "",
+    date: event.startTime,
+    startTime: event.startTime,
+    endTime: event.endTime,
+  }));
+  //  console.log(rawevent)
+  console.log(data);
   return (
     <div className="flex-1 space-y-4 p-4 md:p-2 pt-6">
       <Card>
@@ -77,15 +122,7 @@ export default function Students() {
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <h2 className="text-xl font-bold tracking-tight">All Events</h2>
             <div className="flex items-center gap-2">
-              <div className="relative flex-1 max-w-sm">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                <Input
-                  placeholder="Search from table..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
+              <TableSearch />
               <Button
                 variant="outline"
                 size="sm"
@@ -110,14 +147,11 @@ export default function Students() {
           </div>
         </CardHeader>
         <CardContent>
-          <TableforAllComponents
-            data={eventsData}
-            columns={eventsColumns}
-          />
+          <TableforAllComponents data={data} columns={eventsColumns} />
           {/* Mobile Card View */}
 
           {/* Pagination */}
-          <PaginationforAllComponents />
+          <PaginationforAllComponents count={count} page={p} />
         </CardContent>
       </Card>
     </div>

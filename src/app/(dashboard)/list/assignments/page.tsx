@@ -1,15 +1,12 @@
-"use client";
-
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
-import { Search, Filter, ArrowUpDown, Plus } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { useState } from "react";
+import {  Filter, ArrowUpDown, Plus } from "lucide-react";
 import PaginationforAllComponents from "../../components/Pagnation";
 import { ColumnConfig } from "../teachers/page";
 import TableforAllComponents from "../../components/Table";
-import { assignmentsData } from "@/lib/data";
 import { Eye, Edit } from "lucide-react";
+import prisma from "@/lib/prisma";
+import TableSearch from "../../components/TableSearch";
 
 interface Assignments {
   id: number;
@@ -61,8 +58,52 @@ const assignmentsColumns: ColumnConfig<Assignments>[] = [
   },
 ];
 
-export default function Students() {
-  const [searchTerm, setSearchTerm] = useState("");
+export default async function Assignments({ searchParams }: { searchParams: { [key: string]: string } | undefined; }) {
+  const params = await searchParams;
+  const page = params?.page;
+  const query = params?.assignmentid || "";
+  const p = page ? Number(page) : 1;
+
+  const whereClause = query
+    ? {
+        lesson: {
+          OR: [
+            { subject: { name: { contains: query, mode: "insensitive" as const } } },
+            { teacher: { name: { contains: query, mode: "insensitive" as const } } },
+            { teacher: { id: { equals: query, mode: "insensitive" as const } } },
+            
+          ],
+        },
+      }
+    : {};
+
+  const [rawAssignment, count] = await prisma.$transaction([
+    prisma.assignment.findMany({
+      where: whereClause,
+      include: {
+        lesson: {
+          select: {
+            subject: { select: { name: true } },
+            class: { select: { name: true } },
+            teacher: { select: { name: true, id: true } },
+          }
+        },
+      }
+    }),
+    prisma.assignment.count(),
+  ]);
+
+  const data = rawAssignment.map((item) => ({
+    id: item.id,
+    subject: item.lesson.subject.name,
+    teacher: `${item.lesson.teacher.name}`,
+    teacherId: `${item.lesson.teacher.id}`,
+    class: item.lesson.class.name,
+    dueDate: new Date(item.dueDate).toISOString().split('T')[0]
+  }));
+ 
+  console.log(rawAssignment);
+
   return (
     <div className="flex-1 space-y-4 p-4 md:p-2 pt-6">
       <Card>
@@ -70,15 +111,8 @@ export default function Students() {
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <h2 className="text-xl font-bold tracking-tight">All Assignments</h2>
             <div className="flex items-center gap-2">
-              <div className="relative flex-1 max-w-sm">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                <Input
-                  placeholder="Search from table..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
+                <TableSearch />
+              
               <Button
                 variant="outline"
                 size="sm"
@@ -103,11 +137,11 @@ export default function Students() {
           </div>
         </CardHeader>
         <CardContent>
-          <TableforAllComponents data={assignmentsData } columns={assignmentsColumns} />
+          <TableforAllComponents data={data} columns={assignmentsColumns} />
           {/* Mobile Card View */}
 
           {/* Pagination */}
-          <PaginationforAllComponents />
+          <PaginationforAllComponents  page={p} count={count}/>
         </CardContent>
       </Card>
     </div>

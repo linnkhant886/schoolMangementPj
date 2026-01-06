@@ -3,13 +3,13 @@ import { Button } from "@/components/ui/button"
 import { Users, GraduationCap, BookOpen, FileText, ClipboardList } from "lucide-react"
 import Link from "next/link";
 
-export function TeacherShortcuts({ teacherName }: { teacherName: string }) {
+export function TeacherShortcuts({ teacherID }: { teacherID: string }) {
   const shortcuts = [
-    { label: "Teacher's Classes", icon: GraduationCap, path: `/list/classes?classid=${teacherName}` },
-    { label: "Teacher's Students", icon: Users, path: `/teachers/${teacherName}/students` },
-    { label: "Teacher's Lessons", icon: BookOpen, path: `/teachers/${teacherName}/lessons` },
-    { label: "Teacher's Exams", icon: FileText, path: `/teachers/${teacherName}/exams` },
-    { label: "Teacher's Assignments", icon: ClipboardList, path: `/teachers/${teacherName}/assignments` },
+    { label: "Teacher's Classes", icon: GraduationCap, path: `/list/classes?classid=${teacherID}` },
+    { label: "Teacher's Students", icon: Users, path: `/list/students?teacherid=${teacherID}`},
+    { label: "Teacher's Lessons", icon: BookOpen, path: `/list/lessons?lessonid=${teacherID}` },
+    { label: "Teacher's Exams", icon: FileText, path: `/list/exams?examid=${teacherID}`},
+    { label: "Teacher's Assignments", icon: ClipboardList, path: `/list/assignments?assignmentid=${teacherID}` },
   ];
 
   return (
